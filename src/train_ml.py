@@ -1,39 +1,32 @@
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-import joblib  # for saving models
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
-# Load features
-X = np.load("models/features.npy")
-y = np.load("models/labels.npy")
+from feature_extraction import load_images_and_labels, extract_features
 
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y
-)
 
-# 🔥 Random Forest
-rf = RandomForestClassifier()
-rf.fit(X_train, y_train)
+def train_model():
+    print("📦 Loading data...")
+    images, labels = load_images_and_labels("../data")
 
-rf_pred = rf.predict(X_test)
+    print("🔍 Extracting features...")
+    features = extract_features(images)
 
-print("\n=== Random Forest ===")
-print("Accuracy:", accuracy_score(y_test, rf_pred))
-print("Confusion Matrix:\n", confusion_matrix(y_test, rf_pred))
-print("Classification Report:\n", classification_report(y_test, rf_pred))
+    X_train, X_test, y_train, y_test = train_test_split(
+        features, labels, test_size=0.2, random_state=42
+    )
 
-# 🔥 KNN
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_train, y_train)
+    print("🌳 Training Random Forest...")
+    clf = RandomForestClassifier(n_estimators=100)
+    clf.fit(X_train, y_train)
 
-knn_pred = knn.predict(X_test)
+    y_pred = clf.predict(X_test)
 
-print("\n=== KNN ===")
-print("Accuracy:", accuracy_score(y_test, knn_pred))
+    acc = accuracy_score(y_test, y_pred)
+    print("✅ Accuracy:", acc)
 
-# Save Random Forest (best choice usually)
-joblib.dump(rf, "models/rf_model.pkl")
-print("\n✅ Random Forest model saved!")
+    return clf
+
+
+if __name__ == "__main__":
+    train_model()

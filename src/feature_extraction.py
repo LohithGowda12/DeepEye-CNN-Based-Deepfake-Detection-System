@@ -1,55 +1,48 @@
-import tensorflow as tf
-import numpy as np
-import cv2
 import os
+import cv2
+import numpy as np
 
-IMG_SIZE = 224
-DATA_DIR = "data"
+from tensorflow.keras.applications import DenseNet201
+from tensorflow.keras.applications.densenet import preprocess_input
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import GlobalAveragePooling2D
 
-# Load pretrained ResNet
-resnet = tf.keras.applications.ResNet50(weights='imagenet', include_top=False, pooling='avg')
-xception = tf.keras.applications.Xception(weights='imagenet', include_top=False, pooling='avg')
-densenet = tf.keras.applications.DenseNet121(weights='imagenet', include_top=False, pooling='avg')
+# Load DenseNet201 (Pretrained)
+base_model = DenseNet201(weights='imagenet', include_top=False)
+
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+
+model = Model(inputs=base_model.input, outputs=x)
+
+# Freeze layers (FL strategy - as in paper)
+for layer in base_model.layers:
+    layer.trainable = False
 
 
-def extract_features():
-    features = []
+def load_images_and_labels(data_dir="data"):
+    images = []
     labels = []
 
-    for category in ["real", "fake"]:
-        path = os.path.join(DATA_DIR, category)
-        label = 0 if category == "real" else 1
+    for label, category in enumerate(["real", "fake"]):
+        path = os.path.join(data_dir, category)
 
-        for img in os.listdir(path)[:100]:
-            print("Processing:", img)
-            try:
-                img_path = os.path.join(path, img)
-                img_array = cv2.imread(img_path)
-                img_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
+        for img_name in os.listdir(path):
+            img_path = os.path.join(path, img_name)
 
-                
-                img_array = np.expand_dims(img_array, axis=0)
+            img = cv2.imread(img_path)
+            img = cv2.resize(img, (224, 224))
 
-                f1 = resnet.predict(img_array)
-                f2 = xception.predict(img_array)
-                f3 = densenet.predict(img_array)
+            images.append(img)
+            labels.append(label)
 
-                combined = np.concatenate([f1.flatten(), f2.flatten(), f3.flatten()])
+    images = np.array(images)
+    labels = np.array(labels)
 
-                features.append(combined)
-                labels.append(label)
-
-            except:
-                pass
-
-    return np.array(features), np.array(labels)
+    return images, labels
 
 
-X, y = extract_features()
-
-print("Feature shape:", X.shape)
-
-np.save("models/features.npy", X)
-np.save("models/labels.npy", y)
-
-print("✅ Features saved successfully!")
+def extract_features(images):
+    images = preprocess_input(images)
+    features = model.predict(images, verbose=1)
+    return features

@@ -12,7 +12,7 @@ IMG_SIZE = 128
 data = []
 labels = []
 
-# Load images
+# Load data
 for category in ["real", "fake"]:
     path = os.path.join(DATA_DIR, category)
     label = 0 if category == "real" else 1
