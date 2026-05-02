@@ -1,13 +1,14 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+import joblib
 
 from feature_extraction import load_images_and_labels, extract_features
 
 
 def train_model():
     print("📦 Loading data...")
-    images, labels = load_images_and_labels("../data")
+    images, labels = load_images_and_labels("data")
 
     print("🔍 Extracting features...")
     features = extract_features(images)
@@ -24,6 +25,10 @@ def train_model():
 
     acc = accuracy_score(y_test, y_pred)
     print("✅ Accuracy:", acc)
+
+    # ✅ SAVE MODEL HERE (INSIDE FUNCTION)
+    joblib.dump(clf, "model_rf.pkl")
+    print("✅ ML model saved!")
 
     return clf
 

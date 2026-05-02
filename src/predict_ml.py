@@ -1,51 +1,28 @@
-import numpy as np
 import cv2
-import tensorflow as tf
+import numpy as np
 import joblib
 
-IMG_SIZE = 224
+from feature_extraction import extract_features
 
-# Load ML model
-rf = joblib.load("models/rf_model.pkl")
+# Load trained model
+model = joblib.load("model_rf.pkl")
 
-# Load CNNs (same as feature extraction)
-resnet = tf.keras.applications.ResNet50(weights='imagenet', include_top=False, pooling='avg')
-xception = tf.keras.applications.Xception(weights='imagenet', include_top=False, pooling='avg')
-densenet = tf.keras.applications.DenseNet121(weights='imagenet', include_top=False, pooling='avg')
-
-
-def extract_features(image_path):
+def predict_image(image_path):
     img = cv2.imread(image_path)
+    img = cv2.resize(img, (224, 224))
 
-    if img is None:
-        print("❌ Image not found:", image_path)
-        return None
+    img = np.array([img])  # batch of 1
 
-    img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-    img = np.expand_dims(img, axis=0)
+    features = extract_features(img)
 
-    f1 = resnet.predict(img)
-    f2 = xception.predict(img)
-    f3 = densenet.predict(img)
+    prediction = model.predict(features)[0]
 
-    combined = np.concatenate([f1.flatten(), f2.flatten(), f3.flatten()])
-
-    return combined.reshape(1, -1)
-
-
-def predict(image_path):
-    features = extract_features(image_path)
-
-    if features is None:
-        return
-
-    pred = rf.predict(features)[0]
-
-    if pred == 1:
-        print("🟥 FAKE")
+    if prediction == 0:
+        print("🟢 REAL")
     else:
-        print("🟩 REAL")
+        print("🔴 FAKE")
 
 
-# 🔥 Test
-predict("data/real/129_4.png")  # change path
+if __name__ == "__main__":
+    # change this path to your test image
+    predict_image("test.jpg")
